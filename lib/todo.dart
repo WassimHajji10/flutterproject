@@ -1,18 +1,41 @@
 import 'package:flutter/material.dart';
 import 'savetasks.dart';
 
+import 'package:get/get.dart';
 class todo extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
+
+
+
     return _todoState();
   }
+
 }
 
 class _todoState extends State<todo>{
 
   final List<Task> _todolist = [];
   final TextEditingController _textEditingController = TextEditingController();
+
   final TaskRepository  _saveTask = TaskRepository ();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  void _loadTasks() async {
+    TaskRepository taskRepository = TaskRepository();
+    List<Task> tasks = await taskRepository.getAllTasks();
+
+    //List<Task> tasks = await TaskRepository.getAllTasks();
+    setState(() {
+      _todolist.clear();
+      _todolist.addAll(tasks);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,17 +175,27 @@ class _todoState extends State<todo>{
     );
   }
 
-  void _deleteTask(int index) {
-    setState(() {
-      _todolist.removeAt(index);
-    });
+  void _deleteTask(int index) async {
+    if (_todolist.isNotEmpty && index >= 0 && index < _todolist.length) {
+      String taskId = _todolist[index].id.toString();
+      setState(() {
+        _todolist.removeAt(index);
+      });
+      await TaskRepository.instance.deleteTask(taskId);
+    }
   }
 
-  void _deleteSubtask(int taskIndex, int subtaskIndex) {
+
+
+  void _deleteSubtask(int taskIndex, int subtaskIndex) async {
+    String taskId = _todolist[taskIndex].id.toString();
     setState(() {
       _todolist[taskIndex].subtasks.removeAt(subtaskIndex);
     });
+    Task updatedTask = _todolist[taskIndex];
+    await TaskRepository.instance.saveTask(updatedTask);
   }
+
 
 }
 
@@ -181,11 +214,17 @@ class Task {
     };
   }
 
-  factory Task.fromJson(Map<String, dynamic> json) {
+  factory Task.fromJson(dynamic json) {
+    if (json is! Map<String, dynamic>) {
+      throw ArgumentError.value(json, 'json', 'Expected a map');
+    }
+    final subtasks = (json['subtasks'] as List<dynamic>)
+        .cast<String>()
+        .toList();
     return Task(
-      id: json['id'],
-      title: json['title'],
-      subtasks: List<String>.from(json['subtasks']),
+      id: json['id'] as int,
+      title: json['title'] as String,
+      subtasks: subtasks,
     );
   }
 }

@@ -11,6 +11,9 @@ class TaskRepository extends GetxController {
     final CollectionReference tasks = FirebaseFirestore.instance.collection('tasks');
     await tasks.doc(task.id.toString()).set(task.toJson());
   }
+  Future<void> deleteTask(String taskId) async {
+    await _db.collection('tasks').doc(taskId).delete();
+  }
 
   Future<Task> getTask(String taskId) async {
     final DocumentSnapshot<Map<String, dynamic>> doc =
@@ -29,4 +32,11 @@ class TaskRepository extends GetxController {
       subtasks: subtasks,
     );
   }
+  Future<List<Task>> getAllTasks() async {
+    QuerySnapshot snapshot = await _db.collection('tasks').get();
+    List<Task> tasks = snapshot.docs.map((doc) => Task.fromJson(doc.data())).toList();
+    return tasks;
+  }
+
+
 }
