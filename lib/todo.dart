@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'savetasks.dart';
 
 class todo extends StatefulWidget {
   @override
@@ -12,6 +12,7 @@ class _todoState extends State<todo>{
 
   final List<Task> _todolist = [];
   final TextEditingController _textEditingController = TextEditingController();
+  final TaskRepository  _saveTask = TaskRepository ();
 
   @override
   Widget build(BuildContext context) {
@@ -57,16 +58,28 @@ class _todoState extends State<todo>{
     );
   }
 
-  void _addItem(String title) {
+  void _addItem(String title) async {
+    int newId = _todolist.isNotEmpty ? _todolist.last.id + 1 : 1;
     setState(() {
       _todolist.add(Task(
+        id: newId,
         title: title,
         subtasks: [], // Ajout des sous-tâches initiales comme une List<String> vide
       ));
     });
     _textEditingController.clear();
     Navigator.of(context).pop();
+
+    // Appel de la méthode saveTask de TaskRepository
+    await _saveTask.saveTask(Task(
+      id: newId,
+      title: title,
+      subtasks: [],
+    ));
   }
+
+
+
 
 
   void _addSubtask(int index) {
@@ -91,9 +104,13 @@ class _todoState extends State<todo>{
             ),
             TextButton(
               child: Text('Add'),
-              onPressed: () {
+              onPressed: () async {
+                String taskId = _todolist[index].id.toString();
+                Task task = await _saveTask.getTask(taskId);
+                task.subtasks.add(subtaskTitle);
+                await _saveTask.saveTask(task);
                 setState(() {
-                  _todolist[index].subtasks.add(subtaskTitle);
+                  _todolist[index] = task;
                 });
                 Navigator.of(context).pop();
               },
@@ -103,6 +120,7 @@ class _todoState extends State<todo>{
       },
     );
   }
+
 
   void _showDialog() {
     showDialog(
@@ -125,6 +143,7 @@ class _todoState extends State<todo>{
               child: Text('Add'),
               onPressed: () {
                 _addItem(_textEditingController.text);
+
               },
             ),
           ],
@@ -148,8 +167,25 @@ class _todoState extends State<todo>{
 }
 
 class Task {
+  final int id;
   final String title;
   final List<String> subtasks;
 
-  Task({required this.title, required this.subtasks});
+  Task({required this.id, required this.title, required this.subtasks});
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'subtasks': subtasks,
+    };
+  }
+
+  factory Task.fromJson(Map<String, dynamic> json) {
+    return Task(
+      id: json['id'],
+      title: json['title'],
+      subtasks: List<String>.from(json['subtasks']),
+    );
+  }
 }
