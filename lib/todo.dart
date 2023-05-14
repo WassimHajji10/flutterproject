@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutterproject/provider.dart';
+import 'package:provider/provider.dart';
 import 'savetasks.dart';
 
-import 'package:get/get.dart';
+
 class todo extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
@@ -13,12 +15,10 @@ class todo extends StatefulWidget {
 
 }
 
-class _todoState extends State<todo>{
-
-  final List<Task> _todolist = [];
+class _todoState extends State<todo> {
   final TextEditingController _textEditingController = TextEditingController();
 
-  final TaskRepository  _saveTask = TaskRepository ();
+  final TaskProvider _taskProvider = TaskProvider();
 
   @override
   void initState() {
@@ -27,15 +27,10 @@ class _todoState extends State<todo>{
   }
 
   void _loadTasks() async {
-    TaskRepository taskRepository = TaskRepository();
-    List<Task> tasks = await taskRepository.getAllTasks();
-
-    //List<Task> tasks = await TaskRepository.getAllTasks();
-    setState(() {
-      _todolist.clear();
-      _todolist.addAll(tasks);
-    });
+    List<Task> tasks = await _taskProvider.getAllTasks();
+    _taskProvider.setTasks(tasks);
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -44,36 +39,53 @@ class _todoState extends State<todo>{
         title: Text('To do list'),
       ),
       body: ListView.builder(
-        itemCount: _todolist.length,
+        itemCount: _taskProvider.tasks.length,
         itemBuilder: (BuildContext context, int index) {
+          Task task = _taskProvider.tasks[index];
           return ListTile(
-            title: Text(_todolist[index].title),
-            subtitle: _todolist[index].subtasks.isNotEmpty ? Column(
+            title: Text(task.title),
+            subtitle: task.subtasks.isNotEmpty
+                ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              children: task.subtasks
+                  .asMap()
+                  .entries
+                  .map((subtaskEntry) => Row(
+                children: [
+                  Expanded(child: Text('- ${subtaskEntry.value}')),
+                  IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () =>
+                        _deleteSubtask(task, subtaskEntry.key),
+                  ),
+                ],
+              ))
+                  .toList(),
+            )
+                : Container(),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                ..._todolist[index].subtasks.asMap().entries.map((subtaskEntry) =>
-                    Row(
-                        children: [
-                          Expanded(
-                              child: Text('- ${subtaskEntry.value}')
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () => _deleteSubtask(index, subtaskEntry.key),
-                          ),
-                        ]
-                    )
-                ).toList(),
+                Checkbox(
+                  value: task.isCompleted,
+                  onChanged: (value) => _toggleCompleted(task),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: () => _deleteTask(index),
+                ),
               ],
-            ) : null,
-            onTap: () => _addSubtask(index),
-            trailing: IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () => _deleteTask(index),
+            ),
+            onTap: () => _addSubtask(task as Task),
+            leading: IconButton(
+              icon: Icon(Icons.edit),
+              onPressed: () => _showEditDialog(task),
             ),
           );
         },
       ),
+
+
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showDialog(),
         child: Icon(Icons.add),
@@ -81,31 +93,30 @@ class _todoState extends State<todo>{
     );
   }
 
-  void _addItem(String title) async {
-    int newId = _todolist.isNotEmpty ? _todolist.last.id + 1 : 1;
+  void _toggleCompleted(Task task) {
     setState(() {
-      _todolist.add(Task(
-        id: newId,
-        title: title,
-        subtasks: [], // Ajout des sous-tâches initiales comme une List<String> vide
-      ));
+      task.isCompleted = !task.isCompleted;
     });
-    _textEditingController.clear();
-    Navigator.of(context).pop();
+  }
 
-    // Appel de la méthode saveTask de TaskRepository
-    await _saveTask.saveTask(Task(
+  void _addItem(String title) async {
+    int newId = _taskProvider.tasks.isNotEmpty
+        ? _taskProvider.tasks.last.id + 1
+        : 1;
+    Task newTask = Task(
       id: newId,
       title: title,
       subtasks: [],
-    ));
+      isCompleted: false,
+    );
+    _taskProvider.addTask(newTask);
+    _textEditingController.clear();
+    Navigator.of(context).pop();
+    setState(() {});
   }
 
 
-
-
-
-  void _addSubtask(int index) {
+  void _addSubtask(Task task) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -127,14 +138,11 @@ class _todoState extends State<todo>{
             ),
             TextButton(
               child: Text('Add'),
-              onPressed: () async {
-                String taskId = _todolist[index].id.toString();
-                Task task = await _saveTask.getTask(taskId);
-                task.subtasks.add(subtaskTitle);
-                await _saveTask.saveTask(task);
-                setState(() {
-                  _todolist[index] = task;
-                });
+              onPressed: () {
+                task.subtasks.insert(0, subtaskTitle); // Insert the new subtask at index 0
+
+                _taskProvider.updateTask(task);
+                setState(() {});
                 Navigator.of(context).pop();
               },
             ),
@@ -143,6 +151,59 @@ class _todoState extends State<todo>{
       },
     );
   }
+
+
+  void _showEditDialog(Task task) {
+    TextEditingController controller =
+    TextEditingController(text: task.title);
+    String newTitle = task.title;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit task'),
+          content: TextField(
+            onChanged: (value) {
+              newTitle = value;
+            },
+            controller: controller,
+            decoration: InputDecoration(hintText: 'Enter task'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Save'),
+              onPressed: () {
+                Task updatedTask = Task(
+                  id: task.id,
+                  title: newTitle,
+                  subtasks: task.subtasks,
+                  isCompleted: task.isCompleted,
+                );
+                _taskProvider.updateTask(updatedTask);
+                setState(() {}); // <-- Add this line to rebuild the widget tree
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  void _markTaskAsFinished(Task task) async {
+    task.isCompleted = true;
+    await _taskProvider.updateTask(task);
+    setState(() {});
+  }
+
+
 
 
   void _showDialog() {
@@ -166,7 +227,6 @@ class _todoState extends State<todo>{
               child: Text('Add'),
               onPressed: () {
                 _addItem(_textEditingController.text);
-
               },
             ),
           ],
@@ -176,10 +236,11 @@ class _todoState extends State<todo>{
   }
 
   void _deleteTask(int index) async {
-    if (_todolist.isNotEmpty && index >= 0 && index < _todolist.length) {
-      String taskId = _todolist[index].id.toString();
+    if (_taskProvider.tasks.isNotEmpty && index >= 0 &&
+        index < _taskProvider.tasks.length) {
+      String taskId = _taskProvider.tasks[index].id.toString();
       setState(() {
-        _todolist.removeAt(index);
+        _taskProvider.tasks.removeAt(index);
       });
       await TaskRepository.instance.deleteTask(taskId);
     }
@@ -187,30 +248,30 @@ class _todoState extends State<todo>{
 
 
 
-  void _deleteSubtask(int taskIndex, int subtaskIndex) async {
-    String taskId = _todolist[taskIndex].id.toString();
+  void _deleteSubtask(Task task, int subtaskIndex) async {
     setState(() {
-      _todolist[taskIndex].subtasks.removeAt(subtaskIndex);
+      task.subtasks.removeAt(subtaskIndex);
     });
-    Task updatedTask = _todolist[taskIndex];
-    await TaskRepository.instance.saveTask(updatedTask);
+    await _taskProvider.updateTask(task);
+    setState(() {});
   }
-
 
 }
 
-class Task {
+  class Task {
   final int id;
   final String title;
-  final List<String> subtasks;
+  bool isCompleted;
+  late final List<String> subtasks;
 
-  Task({required this.id, required this.title, required this.subtasks});
+  Task({required this.id, required this.title,required this.isCompleted, required this.subtasks});
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'title': title,
       'subtasks': subtasks,
+      'isCompleted': isCompleted ? 1 : 0,
     };
   }
 
@@ -225,6 +286,8 @@ class Task {
       id: json['id'] as int,
       title: json['title'] as String,
       subtasks: subtasks,
+      isCompleted: json['isCompleted'] as bool,
+
     );
   }
 }

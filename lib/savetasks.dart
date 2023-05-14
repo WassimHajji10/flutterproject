@@ -15,6 +15,24 @@ class TaskRepository extends GetxController {
     await _db.collection('tasks').doc(taskId).delete();
   }
 
+  Future<void> deleteSubtask(int taskId, int subtaskId) async {
+    final DocumentReference taskRef = _db.collection('tasks').doc(taskId.toString());
+    final DocumentSnapshot<Map<String, dynamic>> doc =
+    await taskRef.get() as DocumentSnapshot<Map<String, dynamic>>;
+
+    if (!doc.exists) {
+      throw Exception('Task not found!');
+    }
+
+    final Map<String, dynamic> data = doc.data()!;
+    final List<String> subtasks = List<String>.from(data['subtasks']);
+
+    if (subtaskId < subtasks.length) {
+      subtasks.removeAt(subtaskId);
+      await taskRef.update({'subtasks': subtasks});
+    }
+  }
+
   Future<Task> getTask(String taskId) async {
     final DocumentSnapshot<Map<String, dynamic>> doc =
     await _db.collection('tasks').doc(taskId).get();
@@ -30,6 +48,8 @@ class TaskRepository extends GetxController {
       id: int.parse(doc.id),
       title: data['title'],
       subtasks: subtasks,
+      isCompleted: false,
+
     );
   }
   Future<List<Task>> getAllTasks() async {
