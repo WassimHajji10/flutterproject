@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutterproject/savetasks.dart';
 import 'package:flutterproject/todo.dart';
@@ -6,6 +8,10 @@ class TaskProvider with ChangeNotifier {
    List<Task> _tasks = [];
 
   final TaskRepository _taskRepository = TaskRepository();
+  final StreamController<List<Task>> _tasksStreamController =
+  StreamController<List<Task>>.broadcast();
+
+   Stream<List<Task>> get taskStream => _tasksStreamController.stream;
 
   List<Task> get tasks => _tasks;
 

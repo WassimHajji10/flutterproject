@@ -37,9 +37,9 @@ class _SignUpState extends State<SignUp> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              hexStringToColor("3949AB"),
-              hexStringToColor("303F9F"),
-              hexStringToColor("283593")
+              hexStringToColor("00BCD4"),
+              hexStringToColor("0097A7"),
+              hexStringToColor("00838F")
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,

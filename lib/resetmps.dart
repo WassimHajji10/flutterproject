@@ -22,6 +22,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       appBar: AppBar(
         title: Text("Réinitialisation du mot de passe"),
       ),
+
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Form(
