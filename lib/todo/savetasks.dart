@@ -21,7 +21,7 @@ class TaskRepository extends GetxController {
     await taskRef.get() as DocumentSnapshot<Map<String, dynamic>>;
 
     if (!doc.exists) {
-      throw Exception('Task not found!');
+      throw Exception('Tâche non trouvée!');
     }
 
     final Map<String, dynamic> data = doc.data()!;
@@ -38,7 +38,7 @@ class TaskRepository extends GetxController {
     await _db.collection('tasks').doc(taskId).get();
 
     if (!doc.exists) {
-      throw Exception('Task not found!');
+      throw Exception('Tâche non trouvée!');
     }
 
     final Map<String, dynamic> data = doc.data()!;
