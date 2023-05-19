@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutterproject/login.dart';
+import 'package:flutterproject/identificcation/login.dart';
 
 class SignUp extends StatefulWidget {
   @override
