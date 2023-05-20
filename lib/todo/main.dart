@@ -5,9 +5,18 @@ import '../identificcation/login.dart';
 import 'package:get/get.dart';
 import 'savetasks.dart';
 import '../Provider/provider.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import '../todo/todo.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+Future<void> backroundHandler(RemoteMessage message) async {
+  print(" This is message from background");
+  print(message.notification!.title);
+  print(message.notification!.body);
+}
 void main()async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(backroundHandler);
   Get.put(TaskRepository());
   Get.put(TaskProvider());
 
@@ -18,13 +27,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-   return ChangeNotifierProvider(
-       create: (context)=>TaskProvider(),
-     child: MaterialApp(
-       home: Login(),
-     ),
+    return ChangeNotifierProvider(
+      create: (context)=>TaskProvider(),
+      child: MaterialApp(
 
-   );
+        home:  Login(),
+      ),
+
+    );
   }
 }
-

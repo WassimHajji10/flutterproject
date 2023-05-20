@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutterproject/Provider/provider.dart';
 import 'package:provider/provider.dart';
 import 'savetasks.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutterproject/services/local_notifications.dart';
 
 
 class todo extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
-
 
 
     return _todoState();
@@ -18,11 +19,11 @@ class todo extends StatefulWidget {
 class _todoState extends State<todo>{
 
 
-
-
   @override
   void initState() {
     super.initState();
+
+
     _loadTasks();
   }
 
@@ -41,7 +42,7 @@ class _todoState extends State<todo>{
 
   @override
   Widget build(BuildContext context) {
-   // final TaskProvider  _taskProvider= TaskProvider ();
+    // final TaskProvider  _taskProvider= TaskProvider ();
     return Scaffold(
       appBar: AppBar(
         title: Text('To do list'),
